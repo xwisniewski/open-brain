@@ -41,6 +41,38 @@ async function verifySlackSignature(req: Request, rawBody: string): Promise<bool
   return valid;
 }
 
+// Parse optional [slug] prefix and optional DECISION: keyword from raw text
+// Returns { slug, isDecision, rationale, cleanText }
+function parseMessage(raw: string): {
+  slug: string | null;
+  isDecision: boolean;
+  rationale: string | null;
+  cleanText: string;
+} {
+  let text = raw.trim();
+  let slug: string | null = null;
+  let isDecision = false;
+  let rationale: string | null = null;
+
+  // Extract [slug] prefix
+  const slugMatch = text.match(/^\[([^\]]+)\]\s*/);
+  if (slugMatch) {
+    slug = slugMatch[1].toLowerCase().trim();
+    text = text.slice(slugMatch[0].length).trim();
+  }
+
+  // Extract DECISION: keyword
+  // Format: DECISION: summary -- rationale
+  const decisionMatch = text.match(/^DECISION:\s*(.+?)(?:\s+--\s+(.+))?$/is);
+  if (decisionMatch) {
+    isDecision = true;
+    text = decisionMatch[1].trim();
+    rationale = decisionMatch[2]?.trim() ?? null;
+  }
+
+  return { slug, isDecision, rationale, cleanText: text };
+}
+
 Deno.serve(async (req: Request) => {
   try {
     console.log("Invoked:", req.method, req.url);
@@ -71,7 +103,75 @@ Deno.serve(async (req: Request) => {
     if (!rawText) return new Response("ok", { status: 200 });
 
     const threadId: string = event.thread_ts ?? event.ts;
-    console.log("Processing message:", rawText.slice(0, 100));
+    const eventId: string = body.event_id;
+    console.log("Processing message:", rawText.slice(0, 100), "event_id:", eventId);
+
+    // Respond to Slack immediately to prevent retries (Slack requires <3s response)
+    const responsePromise = new Promise<void>((resolve) => {
+      EdgeRuntime.waitUntil(processMessage(rawText, threadId, eventId));
+      resolve();
+    });
+    await responsePromise;
+    return new Response("ok", { status: 200 });
+  } catch (err) {
+    console.error("Unhandled error:", err);
+    return new Response("Internal error", { status: 500 });
+  }
+});
+
+async function processMessage(rawText: string, threadId: string, eventId: string) {
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Deduplicate: skip if this event_id was already processed
+    if (eventId) {
+      const { data: existing } = await supabase
+        .from("thoughts")
+        .select("id")
+        .eq("slack_event_id", eventId)
+        .maybeSingle();
+      if (existing) {
+        console.log("Duplicate event, skipping:", eventId);
+        return;
+      }
+    }
+
+    const { slug, isDecision, rationale, cleanText } = parseMessage(rawText);
+
+    // Resolve project_id from slug if provided
+    let projectId: string | null = null;
+    if (slug) {
+      const { data: project } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (project) {
+        projectId = project.id;
+        console.log("Linked to project:", slug, projectId);
+      } else {
+        console.warn("Unknown project slug:", slug);
+      }
+    }
+
+    // Route decisions to project_decisions table
+    if (isDecision && projectId) {
+      const { error } = await supabase.from("project_decisions").insert({
+        project_id: projectId,
+        summary: cleanText,
+        rationale,
+        source: "slack",
+      });
+      if (error) {
+        console.error("Decision insert error:", error);
+      } else {
+        console.log("Decision logged for project:", slug);
+      }
+      return;
+    }
 
     // 1. Classify with Claude haiku
     console.log("Calling Claude...");
@@ -96,7 +196,7 @@ Deno.serve(async (req: Request) => {
 - people: array of person names mentioned, else []
 - topics: array of 1-3 topic tags, else []
 
-Thought: """${rawText}"""`,
+Thought: """${cleanText}"""`,
           },
         ],
       }),
@@ -104,7 +204,7 @@ Thought: """${rawText}"""`,
 
     if (!claudeRes.ok) {
       console.error("Claude error:", await claudeRes.text());
-      return new Response("Claude error", { status: 500 });
+      return;
     }
 
     const claudeData = await claudeRes.json();
@@ -120,11 +220,11 @@ Thought: """${rawText}"""`,
     };
 
     try {
-      const raw = claudeData.content[0].text.replace(/^```json\s*/i, "").replace(/```\s*$/,"").trim();
+      const raw = claudeData.content[0].text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
       metadata = JSON.parse(raw);
     } catch {
       console.error("Failed to parse Claude response:", claudeData.content[0].text);
-      return new Response("Parse error", { status: 500 });
+      return;
     }
 
     // 2. Embed with OpenAI
@@ -137,13 +237,13 @@ Thought: """${rawText}"""`,
       },
       body: JSON.stringify({
         model: "text-embedding-3-small",
-        input: rawText,
+        input: cleanText,
       }),
     });
 
     if (!openaiRes.ok) {
       console.error("OpenAI error:", await openaiRes.text());
-      return new Response("OpenAI error", { status: 500 });
+      return;
     }
 
     const openaiData = await openaiRes.json();
@@ -152,15 +252,12 @@ Thought: """${rawText}"""`,
 
     // 3. Insert into Supabase
     console.log("Inserting into DB...");
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
     const { error } = await supabase.from("thoughts").insert({
-      raw_text: rawText,
+      raw_text: cleanText,
       source: "slack",
       thread_id: threadId,
+      slack_event_id: eventId ?? null,
+      project_id: projectId,
       category: metadata.category,
       confidence: metadata.confidence,
       title: metadata.title,
@@ -172,13 +269,11 @@ Thought: """${rawText}"""`,
 
     if (error) {
       console.error("Supabase insert error:", error);
-      return new Response("DB error", { status: 500 });
+      return;
     }
 
     console.log("Success!");
-    return new Response("ok", { status: 200 });
   } catch (err) {
-    console.error("Unhandled error:", err);
-    return new Response("Internal error", { status: 500 });
+    console.error("Unhandled error in processMessage:", err);
   }
-});
+}
