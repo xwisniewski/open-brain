@@ -81,6 +81,15 @@ Deno.serve(async () => {
     }
 
     // Deduplicate against existing insights and insert new ones
+    // Track per-type display counts to cap the Slack block
+    const displayCaps: Record<string, number> = {
+      suggested_project: 3,
+      recurring_action: 3,
+      stale_action: 5,
+      recurring_person: 3,
+    };
+    const displayCounts: Record<string, number> = {};
+
     for (const insight of insightRows) {
       const { data: exists } = await supabase.rpc("insight_exists", {
         p_type: insight.type,
@@ -88,18 +97,30 @@ Deno.serve(async () => {
       });
       if (!exists) {
         await supabase.from("insights").insert(insight);
-        // Build display line
-        let line = "";
-        if (insight.type === "suggested_project") {
-          line = `• SUGGESTED PROJECT: "${insight.title}" mentioned ${(insight.detail as { count: number }).count}x in unlinked thoughts`;
-        } else if (insight.type === "recurring_action") {
-          line = `• RECURRING ACTION: "${insight.title}" appears ${(insight.detail as { count: number }).count}x this week`;
-        } else if (insight.type === "stale_action") {
-          line = `• STALE ACTION: "${insight.title}" — ${(insight.detail as { days_old: number }).days_old} days old`;
-        } else if (insight.type === "recurring_person") {
-          line = `• RECURRING PERSON: "${insight.title}" mentioned ${(insight.detail as { count: number }).count}x this week`;
-        }
-        if (line) patternLines.push(line);
+      }
+      // Build display line (cap per type regardless of novelty)
+      displayCounts[insight.type] = (displayCounts[insight.type] ?? 0) + 1;
+      if (displayCounts[insight.type] > displayCaps[insight.type]) continue;
+
+      let line = "";
+      if (insight.type === "suggested_project") {
+        line = `• Suggested project: _${insight.title}_ (${(insight.detail as { count: number }).count}x this week)`;
+      } else if (insight.type === "recurring_action") {
+        line = `• Recurring action: "${insight.title}" (${(insight.detail as { count: number }).count}x)`;
+      } else if (insight.type === "stale_action") {
+        line = `• Stale action: "${insight.title}" — ${(insight.detail as { days_old: number }).days_old} days old`;
+      } else if (insight.type === "recurring_person") {
+        line = `• Frequent mention: _${insight.title}_ (${(insight.detail as { count: number }).count}x)`;
+      }
+      if (line) patternLines.push(line);
+    }
+
+    // Append overflow notes per type
+    for (const [type, cap] of Object.entries(displayCaps)) {
+      const total = displayCounts[type] ?? 0;
+      if (total > cap) {
+        const label = type.replace(/_/g, " ");
+        patternLines.push(`  _…and ${total - cap} more ${label}s_`);
       }
     }
   } catch (patternErr) {
@@ -107,9 +128,9 @@ Deno.serve(async () => {
     patternLines = [];
   }
 
-  // 2c. Build pattern section for Claude prompt
+  // 2c. Build pattern section for Claude prompt (compact, no headers)
   const patternSection = patternLines.length > 0
-    ? `\n\n## Patterns detected this week\n${patternLines.join("\n")}\nBriefly mention significant patterns in one sentence of the digest.`
+    ? `\n\n## Patterns detected this week\n${patternLines.join("\n")}\nBriefly mention the most significant pattern in one sentence.`
     : "";
 
   // 2. Format thoughts for Claude
@@ -136,7 +157,7 @@ Deno.serve(async () => {
 Here are the thoughts captured in the last 24 hours:
 ${thoughtsList}${patternSection}
 
-Write a brief, friendly daily digest (3-5 sentences max). Highlight key themes, any action items, and notable ideas. Be concise and useful — this is a morning briefing.`,
+Write a brief, friendly daily digest (3-5 sentences max). Highlight key themes, any action items, and notable ideas. Be concise and useful — this is a morning briefing. Do not use markdown headers or section titles — plain prose only.`,
         },
       ],
     }),
