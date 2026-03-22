@@ -270,6 +270,55 @@ server.tool(
   },
 );
 
+server.tool(
+  "get_insights",
+  "Get emergent patterns detected across your second brain — recurring topics, stale actions, frequent people, suggested project clusters",
+  {
+    status: z.enum(["new", "seen", "dismissed", "all"]).default("new"),
+    type: z.enum(["suggested_project", "recurring_action", "stale_action", "recurring_person", "all"]).default("all"),
+    limit: z.number().int().min(1).max(50).default(20),
+  },
+  async ({ status, type, limit }) => {
+    let query = supabase
+      .from("insights")
+      .select("id, type, title, detail, status, detected_at")
+      .order("detected_at", { ascending: false })
+      .limit(limit);
+
+    if (status !== "all") query = query.eq("status", status);
+    if (type !== "all") query = query.eq("type", type);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch insights: ${error.message}`);
+    if (!data || data.length === 0) {
+      return { content: [{ type: "text", text: "No insights found." }] };
+    }
+
+    const typeLabels: Record<string, string> = {
+      suggested_project: "SUGGESTED PROJECT",
+      recurring_action: "RECURRING ACTION",
+      stale_action: "STALE ACTION",
+      recurring_person: "RECURRING PERSON",
+    };
+
+    const lines = data.map((ins) => {
+      const label = typeLabels[ins.type] ?? ins.type.toUpperCase();
+      const age = Math.floor((Date.now() - new Date(ins.detected_at).getTime()) / (1000 * 60 * 60));
+      const ageStr = age < 24 ? `${age}h ago` : `${Math.floor(age / 24)}d ago`;
+      const detail = ins.detail as Record<string, unknown>;
+      let detailStr = "";
+      if (ins.type === "suggested_project" || ins.type === "recurring_person" || ins.type === "recurring_action") {
+        detailStr = ` (${detail.count}x)`;
+      } else if (ins.type === "stale_action") {
+        detailStr = ` (${detail.days_old} days old)`;
+      }
+      return `[${label}] ${ins.title}${detailStr} — ${ins.status} | ${ageStr}`;
+    });
+
+    return { content: [{ type: "text", text: lines.join("\n") }] };
+  },
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 const transport = new StdioServerTransport();
