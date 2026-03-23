@@ -37,7 +37,7 @@ async function verifySlackSignature(req: Request, rawBody: string): Promise<bool
     .join("");
 
   const valid = computed === signature;
-  if (!valid) console.error("Signature mismatch", { computed, received: signature });
+  if (!valid) console.error("Slack signature mismatch");
   return valid;
 }
 
@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
   try {
     console.log("Invoked:", req.method, req.url);
     const rawBody = await req.text();
-    console.log("Body:", rawBody.slice(0, 200));
+    console.log("Received Slack event, body length:", rawBody.length);
 
     const verified = await verifySlackSignature(req, rawBody);
     if (!verified) {
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
 
     const threadId: string = event.thread_ts ?? event.ts;
     const eventId: string = body.event_id;
-    console.log("Processing message:", rawText.slice(0, 100), "event_id:", eventId);
+    console.log("Processing event_id:", eventId, "text length:", rawText.length);
 
     // Respond to Slack immediately to prevent retries (Slack requires <3s response)
     const responsePromise = new Promise<void>((resolve) => {
@@ -208,7 +208,7 @@ Thought: """${cleanText}"""`,
     }
 
     const claudeData = await claudeRes.json();
-    console.log("Claude response:", claudeData.content[0].text);
+    console.log("Claude classification complete");
 
     let metadata: {
       category: string;
