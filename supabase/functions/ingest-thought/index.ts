@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const event = body.event;
-    if (!event || event.type !== "message" || event.subtype) {
+    if (!event || event.type !== "message" || event.subtype || event.bot_id) {
       console.log("Skipping event", event?.type, event?.subtype);
       return new Response("ok", { status: 200 });
     }
@@ -104,11 +104,12 @@ Deno.serve(async (req: Request) => {
 
     const threadId: string = event.thread_ts ?? event.ts;
     const eventId: string = body.event_id;
+    const channel: string = event.channel;
     console.log("Processing event_id:", eventId, "text length:", rawText.length);
 
     // Respond to Slack immediately to prevent retries (Slack requires <3s response)
     const responsePromise = new Promise<void>((resolve) => {
-      EdgeRuntime.waitUntil(processMessage(rawText, threadId, eventId));
+      EdgeRuntime.waitUntil(processMessage(rawText, threadId, eventId, channel));
       resolve();
     });
     await responsePromise;
@@ -119,7 +120,7 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-async function processMessage(rawText: string, threadId: string, eventId: string) {
+async function processMessage(rawText: string, threadId: string, eventId: string, channel: string) {
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -273,6 +274,20 @@ Thought: """${cleanText}"""`,
     }
 
     console.log("Success!");
+
+    // Send confirmation back to the channel/DM
+    await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${Deno.env.get("SLACK_BOT_TOKEN")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        thread_ts: threadId,
+        text: `✓ _${metadata.title}_`,
+      }),
+    });
   } catch (err) {
     console.error("Unhandled error in processMessage:", err);
   }

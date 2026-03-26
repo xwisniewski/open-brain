@@ -3,3 +3,5 @@
 node_modules/
 mcp-server/dist/
 supabase/.temp/
+.DS_Store
+client_secret_*.json
