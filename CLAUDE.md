@@ -32,10 +32,13 @@ Cron Job → Daily digest → Slack DM
 ## Build Phases
 
 - [x] Phase 1: DB setup — pgvector enabled, `thoughts` table + indexes
-- [ ] Phase 2: Slack webhook → Edge Function → Claude API → DB
-- [ ] Phase 3: MCP server for AI retrieval
-- [ ] Phase 4: Daily digest cron → Slack DM
-- [ ] Phase 5: Additional capture points
+- [x] Phase 2: Slack webhook → Edge Function → Claude API → DB
+- [x] Phase 3: MCP server for AI retrieval
+- [x] Phase 4: Daily digest cron → Slack DM (8am PST = 16:00 UTC)
+- [x] Phase 5a: Duplicate ingest bug fixed
+- [x] Phase 5b: Project context layer — fully live
+- [x] Phase 6: Emergent pattern detection — insights table, `get_insights` MCP tool
+- [x] Phase 7: Digest UX overhaul — Block Kit, Google Calendar/Gmail, Slack slash command, DM capture
 
 ## Supabase CLI Commands
 
@@ -74,6 +77,33 @@ supabase db diff
 - DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 - Studio: `http://127.0.0.1:54323`
 - Edge Functions: `http://127.0.0.1:54321/functions/v1/<name>`
+
+## Deployment
+
+```bash
+# Deploy ingest function — MUST use --no-verify-jwt (Slack webhooks don't send Supabase JWTs)
+supabase functions deploy ingest-thought --no-verify-jwt
+
+# Deploy digest function — also needs --no-verify-jwt for slash command endpoint
+supabase functions deploy daily-digest --no-verify-jwt
+```
+
+**Required Supabase secrets** (set via `supabase secrets set KEY=value`):
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SLACK_BOT_TOKEN`
+- `SLACK_SIGNING_SECRET`
+- `SLACK_USER_ID` — `U0AJE85E3JT`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REFRESH_TOKEN`
+
+## Active Backlog (priority order)
+
+1. **Dismiss stale actions** — 25+ accumulating; needs `/dismiss` Slack command or interactive button
+2. **Smarter pattern deduplication** — "EY" and "onboarding" cluster separately; needs semantic grouping
+3. **Multiple calendars** — currently only pulls primary Google Calendar
 
 ## Key Constraints
 
