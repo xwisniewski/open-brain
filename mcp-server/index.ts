@@ -3,6 +3,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { z } from "zod";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const execFileAsync = promisify(execFile);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -316,6 +323,64 @@ server.tool(
     });
 
     return { content: [{ type: "text", text: lines.join("\n") }] };
+  },
+);
+
+// ── Obsidian vault tools ───────────────────────────────────────────────────
+
+server.tool(
+  "compile_wiki",
+  "Compile or recompile the Obsidian wiki from raw vault notes. Runs incrementally by default (only topics with new raw files since last compile). Use force=true to recompile everything.",
+  {
+    force: z.boolean().default(false).describe("Recompile all articles even if unchanged"),
+  },
+  async ({ force }) => {
+    const scriptsDir = path.resolve(__dirname, "../scripts");
+    const args = ["--loader", "ts-node/esm", "compile-wiki.ts"];
+    if (force) args.push("--force");
+
+    try {
+      const { stdout, stderr } = await execFileAsync(
+        "node",
+        args,
+        {
+          cwd: scriptsDir,
+          env: { ...process.env },
+          timeout: 120_000,
+        },
+      );
+      const output = [stdout, stderr].filter(Boolean).join("\n").trim();
+      return { content: [{ type: "text", text: output || "Compile complete." }] };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Wiki compile failed: ${message}`);
+    }
+  },
+);
+
+server.tool(
+  "export_to_vault",
+  "Export all thoughts and projects from Supabase into the Obsidian vault's raw/ directory as markdown files.",
+  {},
+  async () => {
+    const scriptsDir = path.resolve(__dirname, "../scripts");
+
+    try {
+      const { stdout, stderr } = await execFileAsync(
+        "node",
+        ["--loader", "ts-node/esm", "export-to-vault.ts"],
+        {
+          cwd: scriptsDir,
+          env: { ...process.env },
+          timeout: 60_000,
+        },
+      );
+      const output = [stdout, stderr].filter(Boolean).join("\n").trim();
+      return { content: [{ type: "text", text: output || "Export complete." }] };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Export failed: ${message}`);
+    }
   },
 );
 
