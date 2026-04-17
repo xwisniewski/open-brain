@@ -326,6 +326,96 @@ server.tool(
   },
 );
 
+// ── Thought capture ────────────────────────────────────────────────────────
+
+server.tool(
+  "log_thought",
+  "Capture a freeform note or progress update directly into your second brain from a Claude session. Classifies, embeds, and stores it in Supabase — pick it up with compile_wiki to push to Obsidian.",
+  {
+    text: z.string().describe("The note or progress update to capture"),
+    project_slug: z.string().optional().describe("Associate with a project slug, e.g. 'open-brain'"),
+  },
+  async ({ text, project_slug }) => {
+    // Resolve project id if given
+    let projectId: string | null = null;
+    if (project_slug) {
+      const { data: project } = await supabase
+        .from("projects")
+        .select("id")
+        .eq("slug", project_slug)
+        .maybeSingle();
+      if (!project) {
+        return { content: [{ type: "text", text: `Unknown project slug: ${project_slug}` }] };
+      }
+      projectId = project.id;
+    }
+
+    // Embed
+    const embedding = await embed(text);
+
+    // Classify via a quick Claude Haiku call
+    const Anthropic = (await import("@anthropic-ai/sdk")).default;
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+
+    const classifyRes = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 256,
+      messages: [{
+        role: "user",
+        content: `Classify this note. Reply with JSON only, no prose.
+
+Note: "${text}"
+
+JSON fields:
+- title: string (short, descriptive, max 60 chars)
+- category: one of "people" | "projects" | "ideas" | "admin" | "needs_review"
+- topics: string[] (2-5 relevant tags, lowercase, hyphenated)
+- next_action: string | null (if there's a clear next step)`,
+      }],
+    });
+
+    let title = text.slice(0, 60);
+    let category = "needs_review";
+    let topics: string[] = [];
+    let next_action: string | null = null;
+
+    try {
+      const raw = classifyRes.content[0].type === "text" ? classifyRes.content[0].text : "{}";
+      const parsed = JSON.parse(raw.replace(/```json\n?|```/g, "").trim()) as {
+        title?: string;
+        category?: string;
+        topics?: string[];
+        next_action?: string | null;
+      };
+      title = parsed.title ?? title;
+      category = parsed.category ?? category;
+      topics = parsed.topics ?? topics;
+      next_action = parsed.next_action ?? null;
+    } catch {
+      // keep defaults
+    }
+
+    const { error } = await supabase.from("thoughts").insert({
+      raw_text: text,
+      title,
+      category,
+      topics,
+      next_action,
+      embedding,
+      ...(projectId ? { project_id: projectId } : {}),
+    });
+
+    if (error) throw new Error(`Failed to save thought: ${error.message}`);
+
+    return {
+      content: [{
+        type: "text",
+        text: `Captured: "${title}" [${category}]${next_action ? `\nNext action: ${next_action}` : ""}\nRun compile_wiki to push to Obsidian.`,
+      }],
+    };
+  },
+);
+
 // ── Obsidian vault tools ───────────────────────────────────────────────────
 
 server.tool(

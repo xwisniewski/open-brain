@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@supabase/supabase-js": "^2.0.0",
     "openai": "^4.0.0"
