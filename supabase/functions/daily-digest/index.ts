@@ -2,6 +2,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 const SLACK_API_URL = "https://slack.com/api";
+const USER_TIMEZONE = Deno.env.get("USER_TIMEZONE") ?? "America/Los_Angeles";
 
 // ---------------------------------------------------------------------------
 // Slack signing secret verification (HMAC-SHA256)
@@ -50,7 +51,7 @@ async function getGoogleAccessToken(): Promise<string> {
 }
 
 async function getCalendarEvents(accessToken: string): Promise<string> {
-  const userTZ = "America/Los_Angeles";
+  const userTZ = USER_TIMEZONE;
 
   // Compute today's date string in user's timezone
   const todayDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: userTZ }).format(new Date());
@@ -181,14 +182,18 @@ async function runDigest(): Promise<Response> {
   // 2. Fetch Google Calendar + Gmail data (non-fatal — digest still sends if Google is unavailable)
   let calendarSection = "";
   let gmailSection = "";
-  try {
-    const accessToken = await getGoogleAccessToken();
-    [calendarSection, gmailSection] = await Promise.all([
-      getCalendarEvents(accessToken),
-      getGmailMessages(accessToken),
-    ]);
-  } catch (googleErr) {
-    console.error("Google API error (non-fatal):", googleErr);
+  const hasGoogleConfig = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN"]
+    .every((name) => Boolean(Deno.env.get(name)));
+  if (hasGoogleConfig) {
+    try {
+      const accessToken = await getGoogleAccessToken();
+      [calendarSection, gmailSection] = await Promise.all([
+        getCalendarEvents(accessToken),
+        getGmailMessages(accessToken),
+      ]);
+    } catch (googleErr) {
+      console.error("Google API error (non-fatal):", googleErr);
+    }
   }
 
   // 2a. Run pattern detection queries in parallel (pure SQL, zero AI cost)
@@ -341,7 +346,7 @@ Write 2-3 sentences max focused on what's most actionable today from the capture
   const count = thoughts.length;
 
   // 2d. Build Slack Block Kit message
-  const userTZ = "America/Los_Angeles";
+  const userTZ = USER_TIMEZONE;
   const dayStr = new Date().toLocaleDateString("en-US", {
     weekday: "long", month: "short", day: "numeric", timeZone: userTZ,
   });
@@ -429,6 +434,10 @@ Write 2-3 sentences max focused on what's most actionable today from the capture
 // Entry point
 // ---------------------------------------------------------------------------
 Deno.serve(async (req: Request) => {
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
   const contentType = req.headers.get("content-type") ?? "";
 
   // Detect Slack slash command: Content-Type is application/x-www-form-urlencoded
@@ -443,6 +452,10 @@ Deno.serve(async (req: Request) => {
       const valid = await verifySlackSignature(req, rawBody);
       if (!valid) {
         console.error("Slack signature verification failed");
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      if (params.get("user_id") !== Deno.env.get("SLACK_USER_ID")) {
         return new Response("Unauthorized", { status: 401 });
       }
 
@@ -464,6 +477,12 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Direct POST (cron job, manual curl) — run synchronously as before
+  // Direct calls must use a separate shared secret because this function is
+  // deployed without Supabase JWT verification for the Slack slash command.
+  const digestSecret = Deno.env.get("DIGEST_SECRET");
+  if (!digestSecret || req.headers.get("x-digest-secret") !== digestSecret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   return await runDigest();
 });

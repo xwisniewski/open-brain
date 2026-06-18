@@ -5,3 +5,4 @@ mcp-server/dist/
 supabase/.temp/
 .DS_Store
 client_secret_*.json
+open-brain-handoff*.tar.gz

@@ -5,18 +5,27 @@ import OpenAI from "openai";
 import { z } from "zod";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+function requiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
 const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  requiredEnv("SUPABASE_URL"),
+  requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
 );
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: requiredEnv("OPENAI_API_KEY") });
 
 async function embed(text: string): Promise<number[]> {
   const res = await openai.embeddings.create({
@@ -355,7 +364,7 @@ server.tool(
 
     // Classify via a quick Claude Haiku call
     const Anthropic = (await import("@anthropic-ai/sdk")).default;
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+    const anthropic = new Anthropic({ apiKey: requiredEnv("ANTHROPIC_API_KEY") });
 
     const classifyRes = await anthropic.messages.create({
       model: "claude-haiku-4-5",
@@ -471,6 +480,115 @@ server.tool(
       const message = err instanceof Error ? err.message : String(err);
       throw new Error(`Export failed: ${message}`);
     }
+  },
+);
+
+// ── Article ingestion ──────────────────────────────────────────────────────
+
+server.tool(
+  "ingest_url",
+  "Fetch a URL and extract its content into the Obsidian vault as a raw source file. Claude compiles it into wiki articles on the next compile_wiki run.",
+  {
+    url: z.string().url().describe("URL to ingest"),
+    notes: z.string().optional().describe("Personal annotation to attach to the ingested article"),
+  },
+  async ({ url, notes }) => {
+    const scriptsDir = path.resolve(__dirname, "../scripts");
+    const args = ["--loader", "ts-node/esm", "ingest-url.ts", url];
+    if (notes) args.push(notes);
+
+    try {
+      const { stdout, stderr } = await execFileAsync(
+        "node",
+        args,
+        { cwd: scriptsDir, env: { ...process.env }, timeout: 60_000 },
+      );
+      const output = [stdout, stderr].filter(Boolean).join("\n").trim();
+      return { content: [{ type: "text", text: output || "Ingested." }] };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(`Ingest failed: ${message}`);
+    }
+  },
+);
+
+// ── Wiki linting ───────────────────────────────────────────────────────────
+
+server.tool(
+  "lint_wiki",
+  "Audit the wiki for broken wikilinks and orphaned pages that aren't referenced from anywhere.",
+  {},
+  async () => {
+    const vaultPath = process.env.OBSIDIAN_VAULT_PATH
+      ?? path.resolve(process.env.HOME!, "Desktop/Second Brain Vault");
+    const wikiDir = path.join(vaultPath, "wiki");
+
+    if (!fs.existsSync(wikiDir)) {
+      return { content: [{ type: "text", text: "wiki/ not found — run compile_wiki first." }] };
+    }
+
+    // Inline lint logic (no external script spawn needed — pure FS reads)
+    function getAllMdFiles(dir: string): string[] {
+      const results: string[] = [];
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) results.push(...getAllMdFiles(full));
+        else if (entry.name.endsWith(".md")) results.push(full);
+      }
+      return results;
+    }
+
+    const allFiles = getAllMdFiles(wikiDir).filter(
+      (f) => !path.basename(f).startsWith("_"),
+    );
+
+    const pageKey = (f: string) => path.relative(wikiDir, f).replace(/\.md$/, "");
+    const pageKeys = new Set(allFiles.map(pageKey));
+    const linkedPages = new Set<string>();
+    const brokenLinks: Array<{ page: string; link: string }> = [];
+    let totalLinks = 0;
+
+    for (const file of allFiles) {
+      const content = fs.readFileSync(file, "utf8");
+      const links = [...content.matchAll(/\[\[([^\]|#]+)(?:[|#][^\]]+)?\]\]/g)].map((m) => m[1].trim());
+      totalLinks += links.length;
+
+      for (const link of links) {
+        const resolved = [...pageKeys].find((k) => k === link || k.endsWith(`/${link}`));
+        if (resolved) {
+          linkedPages.add(resolved);
+        } else {
+          brokenLinks.push({ page: pageKey(file), link });
+        }
+      }
+    }
+
+    const orphaned = [...pageKeys].filter((k) => !linkedPages.has(k));
+
+    const lines: string[] = [
+      `Wiki audit — ${allFiles.length} pages, ${totalLinks} links`,
+      ``,
+    ];
+
+    if (brokenLinks.length === 0) {
+      lines.push("Broken links: none ✓");
+    } else {
+      lines.push(`Broken links (${brokenLinks.length}):`);
+      for (const { page, link } of brokenLinks) {
+        lines.push(`  ${page}  →  [[${link}]]`);
+      }
+    }
+
+    lines.push("");
+
+    if (orphaned.length === 0) {
+      lines.push("Orphaned pages: none ✓");
+    } else {
+      lines.push(`Orphaned pages (${orphaned.length}):`);
+      for (const p of orphaned) lines.push(`  ${p}`);
+    }
+
+    return { content: [{ type: "text", text: lines.join("\n") }] };
   },
 );
 

@@ -1,0 +1,1 @@
+-- Intentionally empty. A fresh user starts with a private, empty second brain.

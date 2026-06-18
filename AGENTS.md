@@ -1,10 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-"Open Brain" — a personal second brain system that captures thoughts from Slack, classifies and embeds them via Claude, stores them in Supabase with pgvector, and surfaces them through an MCP server for AI retrieval.
+"Open Brain" — a personal second brain system that captures thoughts from Slack, classifies and embeds them via Codex, stores them in Supabase with pgvector, and surfaces them through an MCP server for AI retrieval.
 
 ## Architecture
 
@@ -12,11 +12,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Slack #sb-inbox
     → Slack webhook
     → Supabase Edge Function (Deno)
-        → Claude API (haiku-4-5 for classification + embedding)
+        → Codex API (haiku-4-5 for classification + embedding)
         → Supabase Postgres (pgvector, thoughts table, vector(1536))
 
 MCP Server (Node.js, self-hosted)
-    → Claude API (Sonnet for digest/retrieval)
+    → Codex API (Sonnet for digest/retrieval)
     → Supabase Postgres (cosine similarity search)
 
 Cron Job → Daily digest → Slack DM
@@ -24,7 +24,7 @@ Cron Job → Daily digest → Slack DM
 
 **Stack:**
 - DB: Supabase Postgres (v17) + pgvector, `thoughts` table with `vector(1536)` column
-- AI: `claude-haiku-4-5` for classification/embedding, `claude-sonnet-4-6` for digest
+- AI: `Codex-haiku-4-5` for classification/embedding, `Codex-sonnet-4-6` for digest
 - Capture: Slack webhook on `#sb-inbox`
 - MCP: Self-hosted Node.js server
 - Edge Functions: Deno v2 runtime
@@ -32,7 +32,7 @@ Cron Job → Daily digest → Slack DM
 ## Build Phases
 
 - [x] Phase 1: DB setup — pgvector enabled, `thoughts` table + indexes
-- [x] Phase 2: Slack webhook → Edge Function → Claude API → DB
+- [x] Phase 2: Slack webhook → Edge Function → Codex API → DB
 - [x] Phase 3: MCP server for AI retrieval
 - [x] Phase 4: Daily digest cron → Slack DM (8am PST = 16:00 UTC)
 - [x] Phase 5a: Duplicate ingest bug fixed
@@ -109,6 +109,6 @@ supabase functions deploy daily-digest --no-verify-jwt
 
 ## Key Constraints
 
-- Cost target: ~$0.10/month — prefer `claude-haiku-4-5` for high-frequency calls (classification, embedding), reserve Sonnet for digest only
+- Cost target: ~$0.10/month — prefer `Codex-haiku-4-5` for high-frequency calls (classification, embedding), reserve Sonnet for digest only
 - Embeddings dimension: `vector(1536)` — must match the embedding model output size
 - Edge Functions run Deno v2; use Deno-compatible imports (no Node built-ins unless polyfilled)

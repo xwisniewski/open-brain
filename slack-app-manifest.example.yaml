@@ -1,0 +1,31 @@
+display_information:
+  name: Second Brain
+  description: Capture thoughts and receive a daily digest
+  background_color: "#2c2d30"
+features:
+  bot_user:
+    display_name: Second Brain
+    always_online: false
+  slash_commands:
+    - command: /digest
+      url: https://YOUR_PROJECT_REF.supabase.co/functions/v1/daily-digest
+      description: Generate your Second Brain digest
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - channels:history
+      - chat:write
+      - im:history
+      - im:write
+settings:
+  event_subscriptions:
+    request_url: https://YOUR_PROJECT_REF.supabase.co/functions/v1/ingest-thought
+    bot_events:
+      - message.channels
+      - message.im
+  interactivity:
+    is_enabled: false
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

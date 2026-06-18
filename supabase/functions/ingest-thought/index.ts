@@ -99,6 +99,12 @@ Deno.serve(async (req: Request) => {
       return new Response("ok", { status: 200 });
     }
 
+    const ownerUserId = Deno.env.get("SLACK_USER_ID");
+    if (!ownerUserId || event.user !== ownerUserId) {
+      console.log("Skipping message from non-owner");
+      return new Response("ok", { status: 200 });
+    }
+
     const rawText: string = event.text?.trim();
     if (!rawText) return new Response("ok", { status: 200 });
 

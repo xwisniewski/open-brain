@@ -15,10 +15,9 @@ import { config } from "dotenv";
 
 config({ path: path.resolve(import.meta.dirname, "../.env.local") });
 
-const VAULT = path.resolve(
-  process.env.HOME!,
-  "Desktop/Second Brain Vault",
-);
+const VAULT = process.env.OBSIDIAN_VAULT_PATH
+  ? path.resolve(process.env.OBSIDIAN_VAULT_PATH)
+  : path.resolve(process.env.HOME!, "Desktop/Second Brain Vault");
 const RAW_THOUGHTS = path.join(VAULT, "raw/thoughts");
 const RAW_PROJECTS = path.join(VAULT, "raw/projects");
 

@@ -15,12 +15,17 @@ import { config } from "dotenv";
 
 config({ path: path.resolve(import.meta.dirname, "../.env.local") });
 
-const VAULT = path.resolve(process.env.HOME!, "Desktop/Second Brain Vault");
+const VAULT = process.env.OBSIDIAN_VAULT_PATH
+  ? path.resolve(process.env.OBSIDIAN_VAULT_PATH)
+  : path.resolve(process.env.HOME!, "Desktop/Second Brain Vault");
 const RAW_DIR = path.join(VAULT, "raw");
 const WIKI_DIR = path.join(VAULT, "wiki");
 const STATE_FILE = path.join(VAULT, ".compile-state.json");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+
+const SCHEMA_FILE = path.join(VAULT, "WIKI_SCHEMA.md");
+const wikiSchema = fs.existsSync(SCHEMA_FILE) ? fs.readFileSync(SCHEMA_FILE, "utf8") : "";
 
 // ── State tracking ─────────────────────────────────────────────────────────
 
@@ -146,11 +151,22 @@ function slug(text: string): string {
 
 // ── Claude compilation ──────────────────────────────────────────────────────
 
-async function compileArticle(group: TopicGroup): Promise<string> {
-  const rawContent = group.files
-    .sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime())
+async function compileArticle(
+  group: TopicGroup,
+  allPageLabels: string[],
+  existingContent: string | null,
+): Promise<string> {
+  const sourceFiles = group.files
+    .sort((a, b) => b.modifiedAt.getTime() - a.modifiedAt.getTime());
+
+  const rawContent = sourceFiles
     .map((f) => `### Source: ${path.basename(f.filePath)}\n\n${f.body.trim()}`)
     .join("\n\n---\n\n");
+
+  // Other known wiki pages for cross-referencing (exclude self)
+  const linkablePages = allPageLabels.filter(
+    (l) => l.toLowerCase() !== group.label.toLowerCase(),
+  );
 
   const typeInstructions: Record<TopicGroup["type"], string> = {
     topic: `Write a wiki article about the topic "${group.label}". Synthesize patterns, key ideas, and any actions or decisions across the notes. Include a ## Summary, ## Key Ideas, and ## Open Questions section.`,
@@ -158,11 +174,23 @@ async function compileArticle(group: TopicGroup): Promise<string> {
     person: `Write a wiki article about the person "${group.label}". Summarize context about this person, relevant interactions, and any open threads or next actions.`,
   };
 
-  const prompt = `You are maintaining a personal knowledge wiki. Below are raw notes and thoughts captured over time.
+  const wikilinkInstruction = linkablePages.length > 0
+    ? `\nWhere relevant, cross-reference related topics using Obsidian wikilinks: [[Page Name]]. Only use names from this exact list — do not invent links:\n${linkablePages.map((l) => `  - ${l}`).join("\n")}`
+    : "";
 
+  const contradictionInstruction = existingContent
+    ? `\n\nEXISTING WIKI PAGE (check for contradictions):\n${existingContent}\n\nIf any new source material contradicts the existing content above, add a ## ⚠️ Contradictions section noting the conflict. If there are no contradictions, omit that section entirely.`
+    : "";
+
+  const schemaSection = wikiSchema
+    ? `\n\nKNOWLEDGE BASE SCHEMA (follow this for structure and tone):\n${wikiSchema}\n`
+    : "";
+
+  const prompt = `You are maintaining a personal knowledge wiki. Below are raw notes and thoughts captured over time.${schemaSection}
 ${typeInstructions[group.type]}
+${wikilinkInstruction}
 
-Be concise and factual. Use the first-person perspective of the note-taker. Do not invent details not present in the sources. Use markdown formatting. End with a ## Sources section listing the filenames.
+Be concise and factual. Use the first-person perspective of the note-taker. Do not invent details not present in the sources. Use markdown formatting. End with a ## Sources section listing the source filenames.${contradictionInstruction}
 
 ---
 
@@ -176,13 +204,14 @@ ${rawContent}`;
 
   const text = response.content[0].type === "text" ? response.content[0].text : "";
 
-  // Wrap with frontmatter
+  const sourceFilenames = sourceFiles.map((f) => path.basename(f.filePath)).join(", ");
   const now = new Date().toISOString();
   const header = [
     `---`,
     `type: ${group.type}`,
     `label: "${group.label}"`,
-    `sources: ${group.files.length}`,
+    `source_count: ${group.files.length}`,
+    `source_files: ${sourceFilenames}`,
     `compiled_at: ${now}`,
     `---`,
     ``,
@@ -242,6 +271,7 @@ export async function compileWiki(forceAll = false): Promise<{ compiled: number;
   }
 
   const groups = groupByTopics(rawFiles);
+  const allPageLabels = [...groups.values()].map((g) => g.label);
   let compiled = 0;
   let skipped = 0;
 
@@ -256,10 +286,14 @@ export async function compileWiki(forceAll = false): Promise<{ compiled: number;
       continue;
     }
 
+    const outPath = wikiPath(group);
+    const existingContent = fs.existsSync(outPath)
+      ? fs.readFileSync(outPath, "utf8")
+      : null;
+
     console.log(`[compile] ${group.key} (${group.files.length} sources)`);
     try {
-      const article = await compileArticle(group);
-      const outPath = wikiPath(group);
+      const article = await compileArticle(group, allPageLabels, existingContent);
       fs.mkdirSync(path.dirname(outPath), { recursive: true });
       fs.writeFileSync(outPath, article, "utf8");
       state.compiled[group.key] = new Date().toISOString();

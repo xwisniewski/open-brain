@@ -3,7 +3,8 @@
 ## Opening the vault
 
 1. Open Obsidian
-2. Click **Open folder as vault** → select `~/Desktop/Second Brain Vault`
+2. Click **Open folder as vault** → select the folder configured by
+   `OBSIDIAN_VAULT_PATH` (defaults to `~/Desktop/Second Brain Vault`)
 3. Start at `wiki/_index.md` — it's your home page with links to everything
 
 ---
@@ -20,7 +21,7 @@ The vault auto-updates every hour via launchd. To sync now:
 
 **Terminal:**
 ```bash
-cd ~/Desktop/Projects\ /SecondBrain/scripts
+cd /path/to/SecondBrain/scripts
 npm run export    # pull thoughts → raw/
 npm run compile   # update wiki articles (incremental)
 ```
