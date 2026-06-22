@@ -1,0 +1,234 @@
+{
+  "communities": {
+    "0": [
+      "mcp_server_package",
+      "mcp_server_package_dependencies",
+      "mcp_server_package_dependencies_anthropic_ai_sdk",
+      "mcp_server_package_dependencies_modelcontextprotocol_sdk",
+      "mcp_server_package_dependencies_openai",
+      "mcp_server_package_dependencies_supabase_supabase_js",
+      "mcp_server_package_devdependencies",
+      "mcp_server_package_devdependencies_ts_node",
+      "mcp_server_package_devdependencies_types_node",
+      "mcp_server_package_devdependencies_typescript",
+      "mcp_server_package_devdependencies_vitest",
+      "mcp_server_package_name",
+      "mcp_server_package_scripts",
+      "mcp_server_package_scripts_build",
+      "mcp_server_package_scripts_serve",
+      "mcp_server_package_scripts_start",
+      "mcp_server_package_scripts_test",
+      "mcp_server_package_scripts_typecheck",
+      "mcp_server_package_type",
+      "mcp_server_package_version"
+    ],
+    "1": [
+      "scripts_compile_wiki",
+      "scripts_compile_wiki_anthropic",
+      "scripts_compile_wiki_compilearticle",
+      "scripts_compile_wiki_compilestate",
+      "scripts_compile_wiki_compilewiki",
+      "scripts_compile_wiki_groupbytopics",
+      "scripts_compile_wiki_loadstate",
+      "scripts_compile_wiki_main",
+      "scripts_compile_wiki_parsefrontmatter",
+      "scripts_compile_wiki_raw_dir",
+      "scripts_compile_wiki_rawfile",
+      "scripts_compile_wiki_readrawfiles",
+      "scripts_compile_wiki_savestate",
+      "scripts_compile_wiki_schema_file",
+      "scripts_compile_wiki_slug",
+      "scripts_compile_wiki_state_file",
+      "scripts_compile_wiki_topicgroup",
+      "scripts_compile_wiki_wiki_dir",
+      "scripts_compile_wiki_wikipath",
+      "scripts_compile_wiki_writeindex"
+    ],
+    "2": [
+      "scripts_package",
+      "scripts_package_dependencies",
+      "scripts_package_dependencies_anthropic_ai_sdk",
+      "scripts_package_dependencies_dotenv",
+      "scripts_package_dependencies_supabase_supabase_js",
+      "scripts_package_devdependencies",
+      "scripts_package_devdependencies_ts_node",
+      "scripts_package_devdependencies_types_node",
+      "scripts_package_devdependencies_typescript",
+      "scripts_package_name",
+      "scripts_package_scripts",
+      "scripts_package_scripts_compile",
+      "scripts_package_scripts_export",
+      "scripts_package_scripts_ingest",
+      "scripts_package_scripts_lint",
+      "scripts_package_type",
+      "scripts_package_version"
+    ],
+    "3": [
+      "scripts_export_to_vault",
+      "scripts_export_to_vault_decision",
+      "scripts_export_to_vault_exportprojects",
+      "scripts_export_to_vault_exportthoughts",
+      "scripts_export_to_vault_main",
+      "scripts_export_to_vault_project",
+      "scripts_export_to_vault_raw_projects",
+      "scripts_export_to_vault_raw_thoughts",
+      "scripts_export_to_vault_slug",
+      "scripts_export_to_vault_supabase",
+      "scripts_export_to_vault_thought",
+      "scripts_export_to_vault_writeifchanged"
+    ],
+    "4": [
+      "mcp_server_index",
+      "mcp_server_index_dirname",
+      "mcp_server_index_embed",
+      "mcp_server_index_execfileasync",
+      "mcp_server_index_getallmdfiles",
+      "mcp_server_index_openai",
+      "mcp_server_index_requiredenv",
+      "mcp_server_index_server",
+      "mcp_server_index_supabase",
+      "mcp_server_index_transport"
+    ],
+    "5": [
+      "scripts_tsconfig",
+      "scripts_tsconfig_compileroptions",
+      "scripts_tsconfig_compileroptions_esmoduleinterop",
+      "scripts_tsconfig_compileroptions_module",
+      "scripts_tsconfig_compileroptions_moduleresolution",
+      "scripts_tsconfig_compileroptions_outdir",
+      "scripts_tsconfig_compileroptions_skiplibcheck",
+      "scripts_tsconfig_compileroptions_strict",
+      "scripts_tsconfig_compileroptions_target",
+      "scripts_tsconfig_include"
+    ],
+    "6": [
+      "mcp_server_tsconfig",
+      "mcp_server_tsconfig_compileroptions",
+      "mcp_server_tsconfig_compileroptions_esmoduleinterop",
+      "mcp_server_tsconfig_compileroptions_module",
+      "mcp_server_tsconfig_compileroptions_moduleresolution",
+      "mcp_server_tsconfig_compileroptions_outdir",
+      "mcp_server_tsconfig_compileroptions_strict",
+      "mcp_server_tsconfig_compileroptions_target",
+      "mcp_server_tsconfig_include"
+    ],
+    "7": [
+      "scripts_lint_wiki",
+      "scripts_lint_wiki_extractwikilinks",
+      "scripts_lint_wiki_getallmdfiles",
+      "scripts_lint_wiki_lintreport",
+      "scripts_lint_wiki_lintwiki",
+      "scripts_lint_wiki_main",
+      "scripts_lint_wiki_pagekey",
+      "scripts_lint_wiki_resolvelink",
+      "scripts_lint_wiki_wiki_dir"
+    ],
+    "8": [
+      "scripts_ingest_url",
+      "scripts_ingest_url_anthropic",
+      "scripts_ingest_url_fetchpagetext",
+      "scripts_ingest_url_ingestresult",
+      "scripts_ingest_url_ingesturl",
+      "scripts_ingest_url_main",
+      "scripts_ingest_url_slugify",
+      "scripts_ingest_url_sources_dir"
+    ],
+    "9": [
+      "daily_digest_index",
+      "daily_digest_index_getcalendarevents",
+      "daily_digest_index_getgmailmessages",
+      "daily_digest_index_getgoogleaccesstoken",
+      "daily_digest_index_rundigest",
+      "daily_digest_index_verifyslacksignature"
+    ],
+    "10": [
+      "mcp_server_index_test",
+      "mcp_server_index_test_chainablequery",
+      "mcp_server_index_test_mockinsert",
+      "mcp_server_index_test_mockrpc",
+      "mcp_server_index_test_mockselect"
+    ],
+    "11": [
+      "ingest_thought_index",
+      "ingest_thought_index_parsemessage",
+      "ingest_thought_index_processmessage",
+      "ingest_thought_index_verifyslacksignature"
+    ],
+    "12": [
+      "scripts_create_handoff_package",
+      "users_xavierwisniewski_desktop_projects_secondbrain_scripts_create_handoff_package_sh__entry"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1,
+    "1": 0.15789473684210525,
+    "2": 0.11764705882352941,
+    "3": 0.24242424242424243,
+    "4": 0.2,
+    "5": 0.2,
+    "6": 0.2222222222222222,
+    "7": 0.3611111111111111,
+    "8": 0.35714285714285715,
+    "9": 0.5333333333333333,
+    "10": 0.4,
+    "11": 0.6666666666666666,
+    "12": 1.0
+  },
+  "gods": [
+    {
+      "id": "scripts_compile_wiki_compilewiki",
+      "label": "compileWiki()",
+      "degree": 9
+    },
+    {
+      "id": "scripts_tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 8
+    },
+    {
+      "id": "mcp_server_tsconfig_compileroptions",
+      "label": "compilerOptions",
+      "degree": 7
+    },
+    {
+      "id": "mcp_server_package_scripts",
+      "label": "scripts",
+      "degree": 6
+    },
+    {
+      "id": "scripts_lint_wiki_lintwiki",
+      "label": "lintWiki()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_package_scripts",
+      "label": "scripts",
+      "degree": 5
+    },
+    {
+      "id": "scripts_export_to_vault_exportthoughts",
+      "label": "exportThoughts()",
+      "degree": 4
+    },
+    {
+      "id": "scripts_ingest_url_ingesturl",
+      "label": "ingestUrl()",
+      "degree": 4
+    },
+    {
+      "id": "daily_digest_index_rundigest",
+      "label": "runDigest()",
+      "degree": 4
+    },
+    {
+      "id": "scripts_compile_wiki_readrawfiles",
+      "label": "readRawFiles()",
+      "degree": 3
+    }
+  ],
+  "surprises": [],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

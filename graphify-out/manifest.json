@@ -1,0 +1,112 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1782094506.776646,
+    "ast_hash": "8d35a02a120d30fbc5805fe7c4d263cf",
+    "semantic_hash": "8d35a02a120d30fbc5805fe7c4d263cf"
+  },
+  ".claude/settings.local.json": {
+    "mtime": 1774481195.814913,
+    "ast_hash": "5979960a0e4836ba4d75ad0227a5a163",
+    "semantic_hash": "5979960a0e4836ba4d75ad0227a5a163"
+  },
+  "mcp-server/index.test.ts": {
+    "mtime": 1775088264.72809,
+    "ast_hash": "26bfb089508682a2dc6195a938b7dbce",
+    "semantic_hash": "26bfb089508682a2dc6195a938b7dbce"
+  },
+  "mcp-server/index.ts": {
+    "mtime": 1781776524.8033178,
+    "ast_hash": "9b08c9d2d029a4f05a7b7bd626fbefe4",
+    "semantic_hash": "9b08c9d2d029a4f05a7b7bd626fbefe4"
+  },
+  "mcp-server/package.json": {
+    "mtime": 1781219377.1836576,
+    "ast_hash": "4cf75e7319b9a7ab45c0b5a5587ff8a3",
+    "semantic_hash": "4cf75e7319b9a7ab45c0b5a5587ff8a3"
+  },
+  "mcp-server/tsconfig.json": {
+    "mtime": 1772759909.5416274,
+    "ast_hash": "4b918207998d6a0b45a278852f49484a",
+    "semantic_hash": "4b918207998d6a0b45a278852f49484a"
+  },
+  "scripts/compile-wiki.ts": {
+    "mtime": 1781776548.3139427,
+    "ast_hash": "3e94593acbe4f225e4f693fcfad0156a",
+    "semantic_hash": "3e94593acbe4f225e4f693fcfad0156a"
+  },
+  "scripts/create-handoff-package.sh": {
+    "mtime": 1781219271.2615376,
+    "ast_hash": "8a8a325e02683701ba949d5335a75da5",
+    "semantic_hash": "8a8a325e02683701ba949d5335a75da5"
+  },
+  "scripts/export-to-vault.ts": {
+    "mtime": 1781219064.4221797,
+    "ast_hash": "691022fd5db2bd7a87694ed86ecf8900",
+    "semantic_hash": "691022fd5db2bd7a87694ed86ecf8900"
+  },
+  "scripts/ingest-url.ts": {
+    "mtime": 1781776431.2794461,
+    "ast_hash": "49c46ed674399bf479217dc94336de89",
+    "semantic_hash": "49c46ed674399bf479217dc94336de89"
+  },
+  "scripts/lint-wiki.ts": {
+    "mtime": 1781776451.0411677,
+    "ast_hash": "95a00d6023c951837cf5b39e26bacd01",
+    "semantic_hash": "95a00d6023c951837cf5b39e26bacd01"
+  },
+  "scripts/package.json": {
+    "mtime": 1781776455.9235237,
+    "ast_hash": "bff65bbebe593767fe5c062486585944",
+    "semantic_hash": "bff65bbebe593767fe5c062486585944"
+  },
+  "scripts/tsconfig.json": {
+    "mtime": 1776383990.3890085,
+    "ast_hash": "5e3ec89591478cac855fd6eda52dfd89",
+    "semantic_hash": "5e3ec89591478cac855fd6eda52dfd89"
+  },
+  "supabase/functions/daily-digest/index.ts": {
+    "mtime": 1781219303.7785687,
+    "ast_hash": "b564c7c9144083e96d92a321db9d96e0",
+    "semantic_hash": "b564c7c9144083e96d92a321db9d96e0"
+  },
+  "supabase/functions/ingest-thought/index.ts": {
+    "mtime": 1781219303.7776947,
+    "ast_hash": "4cae8c48950d1dfff2af2eeccb3f8c03",
+    "semantic_hash": "4cae8c48950d1dfff2af2eeccb3f8c03"
+  },
+  "supabase/migrations/20260320000000_initial_schema.sql": {
+    "mtime": 1781219222.08557,
+    "ast_hash": "b20acd2e53f8f44bae35b2074c4db3c9",
+    "semantic_hash": "b20acd2e53f8f44bae35b2074c4db3c9"
+  },
+  "supabase/migrations/20260321000000_add_slack_event_id.sql": {
+    "mtime": 1774125441.7463677,
+    "ast_hash": "d3a12a9c0a94c7b97648dd725debd70b",
+    "semantic_hash": "d3a12a9c0a94c7b97648dd725debd70b"
+  },
+  "supabase/migrations/20260321000001_project_context.sql": {
+    "mtime": 1774133338.6165397,
+    "ast_hash": "b1007fe85060647f1e209ec5dc34c054",
+    "semantic_hash": "b1007fe85060647f1e209ec5dc34c054"
+  },
+  "supabase/migrations/20260321000002_update_match_thoughts.sql": {
+    "mtime": 1774133440.1193419,
+    "ast_hash": "a7e0056a07d09525271f9fb81325bbba",
+    "semantic_hash": "a7e0056a07d09525271f9fb81325bbba"
+  },
+  "supabase/migrations/20260321000003_insights.sql": {
+    "mtime": 1774149827.6591349,
+    "ast_hash": "964094b9e6cc871fc6be07d5d8a563f4",
+    "semantic_hash": "964094b9e6cc871fc6be07d5d8a563f4"
+  },
+  "supabase/migrations/20260323000000_enable_rls.sql": {
+    "mtime": 1774296458.0269864,
+    "ast_hash": "2454761194d57ecb137fe8c9c06beafb",
+    "semantic_hash": "2454761194d57ecb137fe8c9c06beafb"
+  },
+  "supabase/seed.sql": {
+    "mtime": 1781219064.4207356,
+    "ast_hash": "8d4d27e0908b6bafb8cff59fd8d604ec",
+    "semantic_hash": "8d4d27e0908b6bafb8cff59fd8d604ec"
+  }
+}

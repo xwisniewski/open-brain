@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "notes-graph": {
+      "type": "stdio",
+      "command": "/Users/xavierwisniewski/.local/bin/graphify-mcp",
+      "args": ["/Users/xavierwisniewski/Desktop/Second Brain Vault/wiki/graphify-out/graph.json"]
+    }
+  }
+}

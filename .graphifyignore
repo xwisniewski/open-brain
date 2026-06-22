@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env*
+*.log
+graphify-out/
+open-brain-handoff.tar.gz
+*.pdf
+*.docx
+*.md
+*.yaml
+*.yml
